@@ -36,8 +36,9 @@
                                 (str "count:" (get-trial-count api-server)))))))
 
 (defn add-stopped-reason [model stopped-category trial]
-  {:why_stopped_class (stopped-category (:why_stopped trial))}
-  )
+  (let [category-result (stopped-category (:why_stopped trial))]
+    {:why_stopped_classification (merge category-result
+                                        (meta category-result))}))
 
 (defn match-study-design-facets [design-facet]
   (match-study-design-facets design-facet)
@@ -64,7 +65,7 @@
           (get-stopped-trials "http://api.lillycoi.com/v1"
                               ["id" "why_stopped"])]
       (if (nil? (:why_stopped trial))
-        (merge trial {:why_stopped_class "NODATA"})
+        (merge trial {:why_stopped_class {:best_category "NODATA"}})
         (merge trial (add-stopped-reason
                       stopped-model stopped-category trial))))))
 

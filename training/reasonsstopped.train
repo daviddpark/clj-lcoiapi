@@ -19,6 +19,8 @@ EXTERNAL           Genitope suspend development of MyVax in light of the decisio
 EXTERNAL        Study closed by the NCI.
 EXTERNAL        drug now on market
 EXTERNAL        Replaced by another study.
+FUNDING         Study was never funded.
+FUNDING         Study was not funded.
 FUNDING         Aims of the study re-evaluated, did not justify allocation of resources.
 FUNDING         The study was terminated because of lack of resources to complete it.
 FUNDING         Withdrawn as company has shut down and filed for bankruptcy
