@@ -6,7 +6,8 @@
             (html5
               [:head
                [:title "clj-lcoiapi"]
-               (include-css "/css/reset.css")]
+               (include-css "/css/lcoiapi.css")
+               (include-css "/css/boilerplate.css")]
               [:body
                [:div#wrapper
                 content]]))

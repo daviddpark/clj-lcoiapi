@@ -9,6 +9,9 @@
 (defn get-json-content [url]
   (:body (client/get url)))
 
+(defn construct-trial-url [api-server trial-id]
+  (str api-server "/trials/" trial-id))
+
 (defn construct-trialsearch-url [api-server fields search_query]
   (str api-server "/trials/search?fields=" (clojure.string/join \, fields)
        "&query=" search_query))
@@ -53,7 +56,7 @@
 
 (defn merge-study-design-facets [trial]
   (if (not (nil? (:study_design trial)))
-    (merge trial {:study_design_facets (extract-study-design-facets
+    (merge {:id (:id trial)} {:study_design_facets (extract-study-design-facets
                                         (:study_design trial))})))
 
 (defn classify-trials []
@@ -87,3 +90,27 @@
 (defn save-all-why-stopped [f]
   (spit f (clojure.string/join "\n" (get-why-stopped))))
 
+(defn get-trial [api-server trial-id]
+  (let [trial (first (:results (read-json
+                     (get-json-content
+                     (construct-trial-url api-server trial-id)))))]
+    (merge trial (merge-study-design-facets trial))))
+
+(defn random-trial []
+  (let [api-server "http://api.lillycoi.com/v1"]
+    (get-trial api-server (first (drop (rand-int (get-trial-count api-server)) (map :id (get-all-trials api-server ["id"])))))))
+
+(defn random-stopped-trial []
+  (let [api-server "http://api.lillycoi.com/v1"
+        stopped-trials (get-stopped-trials api-server ["id"])]       
+    (get-trial api-server
+               (first (drop (rand-int (count stopped-trials))
+                            (map :id stopped-trials))))))
+
+(defn stopped-trials-for-turk []
+  (let [api-server "http://api.lillycoi.com/v1"
+        stopped-trials
+        (get-stopped-trials
+         api-server
+         ["id" "why_stopped" "overall_status" "detailed_description"])]
+    (take-nth 50 stopped-trials)))
