@@ -3,15 +3,15 @@
             [noir.response :as response]
             [clojure.contrib.string :as string])
   (:use [noir.core :only [defpage]]
-        ;;[monger.core :only [connect! connect set-db! get-db]]
-        ;;[monger.collection :only [insert]]
+        [monger.core :only [connect! set-db! get-db]]
+        [monger.collection :only [insert]]
         [clj-lcoiapi.core :only
          [classify-trials get-trial parse-study-design-all-trials
           stopped-trials-for-turk]]
         [hiccup.core :only [html]]
         )
-  (comment (:import [org.bson.types ObjectId]
-           [com.mongodb DB WriteConcern]))
+  (:import [org.bson.types ObjectId]
+           [com.mongodb DB WriteConcern])
   )
 
 (defpage "/test" []
@@ -25,6 +25,10 @@
 
 (defpage [:post "/trials/classify"] {:keys [id why_stopped stopped_class]}
   (println (str "Inserting new doc " id "\n" why_stopped "\n" stopped_class "\n"))
+  (connect!)
+  (set-db! (monger.core/get-db "classification"))
+  (insert "whystopped"
+          {:nctid id, :why_stopped why_stopped, :stopped_class stopped_class})
   (response/redirect "/trials/classify/thanks")
   )
 

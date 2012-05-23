@@ -6,7 +6,7 @@
                  [org.clojure/data.json "0.1.2"]
                  [org.apache.opennlp/opennlp-tools "1.5.1-incubating"]
                  [clojure-opennlp "0.1.11-SNAPSHOT"]
-                 [noir "1.2.1"]
+                 [noir "1.3.0-beta7"]
                  [org.clojars.mikejs/ring-gzip-middleware "0.1.0-SNAPSHOT"]
                  [com.novemberain/monger "1.0.0-beta6"]
                 ]

@@ -1,9 +1,13 @@
 (ns clj-lcoiapi.core
   (:require [clj-http.client :as client]
+            [clojure.contrib.string :as string]
             [opennlp.nlp :as nlp]
+            [monger.collection :as mc]
             [opennlp.tools.train :as train])
   (:use [opennlp.nlp]
+        [monger.core :only [connect! set-db! get-db]]
         [clojure.data.json :only (read-json json-str)])
+  (:import [java.io ByteArrayInputStream])
   (:gen-class))
 
 (defn get-json-content [url]
@@ -38,10 +42,13 @@
                                 api-server fields
                                 (str "count:" (get-trial-count api-server)))))))
 
-(defn add-stopped-reason [model stopped-category trial]
-  (let [category-result (stopped-category (:why_stopped trial))]
-    {:why_stopped_classification (merge category-result
-                                        (meta category-result))}))
+(defn add-stopped-reason [model trial]
+  (if (nil? (:why_stopped trial))
+    (merge trial {:why_stopped_classification {:best-category "NODATA"}})
+    (let [stopped-category (nlp/make-document-categorizer model)
+          category-result (stopped-category (:why_stopped trial))]
+      (merge trial {:why_stopped_classification
+                    (merge category-result (meta category-result))}))))
 
 (defn match-study-design-facets [design-facet]
   (match-study-design-facets design-facet)
@@ -59,18 +66,31 @@
     (merge {:id (:id trial)} {:study_design_facets (extract-study-design-facets
                                         (:study_design trial))})))
 
-(defn classify-trials []
-  (let [stopped-model
-        (train/train-document-categorization "training/reasonsstopped.train")
-        stopped-category
-        (nlp/make-document-categorizer stopped-model)]
+(defn classify-trials-with-model [stopped-model]
+  (let []
     (for [trial
           (get-stopped-trials "http://api.lillycoi.com/v1"
                               ["id" "why_stopped"])]
-      (if (nil? (:why_stopped trial))
-        (merge trial {:why_stopped_class {:best_category "NODATA"}})
-        (merge trial (add-stopped-reason
-                      stopped-model stopped-category trial))))))
+      (add-stopped-reason stopped-model trial))))
+
+(defn whystopped-language-model []
+  (connect!)
+  (set-db! (get-db "classification"))
+  (let [content
+        (apply str
+              (for [doc (mc/find-maps "whystopped")]
+                (str (:stopped_class doc) "\t" (string/replace-re #"\s+" " " (:why_stopped doc)) "\n")))]
+    (println "CLASSIFICATION TRAINING MODEL:\n" content)
+    (train/train-document-categorization (ByteArrayInputStream. (.getBytes content)))))
+
+(defn classify-individual-trial [trial]
+  (add-stopped-reason (whystopped-language-model) trial))
+
+(defn classify-trials []
+  (classify-trials-with-model (whystopped-language-model)))
+
+(defn classify-trials-static []
+  (classify-trials-with-model (train/train-document-categorization "training/reasonsstopped.train")))
 
 (defn parse-study-design-all-trials []
   (for [trial (get-all-trials "http://api.lillycoi.com/v1"
@@ -94,7 +114,7 @@
   (let [trial (first (:results (read-json
                      (get-json-content
                      (construct-trial-url api-server trial-id)))))]
-    (merge trial (merge-study-design-facets trial))))
+    (merge (classify-individual-trial trial) (merge-study-design-facets trial))))
 
 (defn random-trial []
   (let [api-server "http://api.lillycoi.com/v1"]
