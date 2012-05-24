@@ -9,7 +9,7 @@
          [classify-trials get-trial parse-study-design-all-trials
           stopped-trials-for-turk]]
         [hiccup.core :only [html]]
-        )
+        [clojure.data.json :only [read-json]])
   (:import [org.bson.types ObjectId]
            [com.mongodb DB WriteConcern])
   )
@@ -23,12 +23,13 @@
 (defpage [:get "/trials/studydesign"] []
   (response/json (parse-study-design-all-trials)))
 
-(defpage [:post "/trials/classify"] {:keys [id why_stopped stopped_class]}
-  (println (str "Inserting new doc " id "\n" why_stopped "\n" stopped_class "\n"))
+(defpage [:post "/trials/classify"] {:keys [id annotationJson annotationUrlJson]}
+  (println (str "Inserting new doc " id "\n" annotationJson "\n" annotationUrlJson "\n"))
   (connect!)
   (set-db! (monger.core/get-db "classification"))
-  (insert "whystopped"
-          {:nctid id, :why_stopped why_stopped, :stopped_class stopped_class})
+  (insert "whystopped" {:nctid id,
+                        :annotations (read-json annotationJson),
+                        :annotationUrls (read-json annotationUrlJson) } )
   (response/redirect "/trials/classify/thanks")
   )
 

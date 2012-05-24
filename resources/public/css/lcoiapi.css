@@ -1,7 +1,89 @@
 html {
     padding: 10px;
+    color: #D9D9D9;
+    background: #000000;
 }
 
 span.label {
     font-weight: bold;
+}
+
+#annotationClass, #annotationText, #submitAnnotation, #cancelSubmission {
+    float: left;
+}
+
+#annotationClass {
+    border-top,border-left,border-bottom: 1px solid #D9D9D9;
+}
+
+#annotationText {
+    border-top,border-right,border-bottom: 1px solid #D9D9D9;
+}
+
+div#annotationz {
+    display: None;
+    border: 1px solid #096AC8;
+    padding: 10px;
+    overflow: auto;
+    width: 800px;
+}
+
+div#annotationClass {
+    width: 300px;
+}
+
+div#annotationText {
+    width: 500px;
+}
+
+#submitAnnotation {
+    clear: both;
+}
+#trialDetails {
+    clear: both;
+    margin-top: 10px;
+}
+
+#annotationClass h5, #annotationText h5, #annotationUrlClass h5, #annotationUrlText h5 {
+    background: #D9D9D9;
+    color: #000000;
+}
+
+div#intervention, div#condition, div#phase {
+    float: left;
+    overflow: auto;
+}
+
+div#phase {
+    width: 250px;
+}
+
+div#intervention, div#condition {
+    width: 350px;
+}
+div.label {
+    background: #D9D9D9;
+    color: #000000;
+    width: 250px;
+}
+div#intervention h4, div#condition h4, div#phase h4 {
+    background: #D9D9D9;
+    color: #000000;
+}
+
+p {
+    clear: both;
+}
+
+ul {
+    list-style: none;
+}
+
+ul.outcomes li {
+    border: 1px solid #096AC8;
+    padding: 10px;
+}
+
+input#relevantUrl {
+    width: 700px;
 }

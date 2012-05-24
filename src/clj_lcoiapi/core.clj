@@ -6,7 +6,7 @@
             [opennlp.tools.train :as train])
   (:use [opennlp.nlp]
         [monger.core :only [connect! set-db! get-db]]
-        [clojure.data.json :only (read-json json-str)])
+        [clojure.data.json :only [read-json json-str]])
   (:import [java.io ByteArrayInputStream])
   (:gen-class))
 
@@ -79,7 +79,8 @@
   (let [content
         (apply str
               (for [doc (mc/find-maps "whystopped")]
-                (str (:stopped_class doc) "\t" (string/replace-re #"\s+" " " (:why_stopped doc)) "\n")))]
+                (apply str (for [annotation (:annotations doc)]
+                  (str (first annotation) "\t" (string/replace-re #"\s+" " " (first (rest annotation))) "\n")))))]
     (println "CLASSIFICATION TRAINING MODEL:\n" content)
     (train/train-document-categorization (ByteArrayInputStream. (.getBytes content)))))
 
