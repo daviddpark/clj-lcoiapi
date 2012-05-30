@@ -46,7 +46,7 @@
   (if (nil? (:why_stopped trial))
     (merge trial {:why_stopped_classification {:best-category "NODATA"}})
     (let [stopped-category (nlp/make-document-categorizer model)
-          category-result (stopped-category (:why_stopped trial))]
+          category-result (stopped-category (string/lower-case (:why_stopped trial)))]
       (merge trial {:why_stopped_classification
                     (merge category-result (meta category-result))}))))
 
@@ -66,12 +66,16 @@
     (merge {:id (:id trial)} {:study_design_facets (extract-study-design-facets
                                         (:study_design trial))})))
 
-(defn classify-trials-with-model [stopped-model]
+(defn classify-trials-with-model [stopped-model fields]
   (let []
-    (for [trial
-          (get-stopped-trials "http://api.lillycoi.com/v1"
-                              ["id" "why_stopped"])]
+    (for [trial (get-stopped-trials "http://api.lillycoi.com/v1" fields)]
       (add-stopped-reason stopped-model trial))))
+
+(defn curated-why-stopped [trial-id]
+  (connect!)
+  (set-db! (get-db "classification"))
+  {:curations (for [doc (mc/find-maps "whystopped" {:nctid trial-id})]
+                doc)})
 
 (defn whystopped-language-model []
   (connect!)
@@ -79,8 +83,8 @@
   (let [content
         (apply str
               (for [doc (mc/find-maps "whystopped")]
-                (apply str (for [annotation (:annotations doc)]
-                  (str (first annotation) "\t" (string/replace-re #"\s+" " " (first (rest annotation))) "\n")))))]
+                (string/lower-case (apply str (for [annotation (:annotations doc)]
+                  (str (first annotation) "\t" (string/replace-re #"\s+" " " (first (rest annotation))) "\n"))))))]
     (println "CLASSIFICATION TRAINING MODEL:\n" content)
     (train/train-document-categorization (ByteArrayInputStream. (.getBytes content)))))
 
@@ -88,14 +92,41 @@
   (add-stopped-reason (whystopped-language-model) trial))
 
 (defn classify-trials []
-  (classify-trials-with-model (whystopped-language-model)))
+  (classify-trials-with-model (whystopped-language-model) ["id" "why_stopped"]))
+
+(defn prepare-trial-facets []
+  (for [trial (classify-trials-with-model (whystopped-language-model)
+                ["id" "overall_status" "phase" "study_design" "study_type" "why_stopped"])]
+    (into {:id (:id trial) :best-category (:best-category (:why_stopped_classification trial))
+           :overall_status (:overall_status trial) :phase (:phase trial)
+           :why_stopped (:why_stopped trial) :study_type (:study_type trial)}
+          (merge-study-design-facets trial))))
+
+(defn uniq-values [k coll]
+  (set (for [m coll] (get m k))))
+
+(defn group-by-values [k coll]
+  (let [uv (uniq-values k coll)]
+    (for [cat uv]
+      {:name cat, :children (filter (fn [collitem] (= cat (k collitem))) coll)})))
+
+(defn trial-facets [keys coll]
+  (let [grouped-values (group-by-values (first keys) coll)]
+    (if (= (count keys) 1)
+      (for [leaf grouped-values]
+        {:name (:name leaf)
+         ;;:children (:children leaf)
+         :size (count (:children leaf))})
+      (for [leaf grouped-values]
+        {:name (:name leaf)
+         :children (trial-facets (rest keys) (:children leaf))}))))
 
 (defn classify-trials-static []
   (classify-trials-with-model (train/train-document-categorization "training/reasonsstopped.train")))
 
 (defn parse-study-design-all-trials []
-  (for [trial (get-all-trials "http://api.lillycoi.com/v1"
-                              ["id" "study_design"])]
+  (for [trial (take 50000 (get-all-trials "http://api.lillycoi.com/v1"
+                              ["id" "study_design"]))]
     (merge-study-design-facets trial)))
 
 (defn get-why-stopped []
@@ -115,7 +146,8 @@
   (let [trial (first (:results (read-json
                      (get-json-content
                      (construct-trial-url api-server trial-id)))))]
-    (merge (classify-individual-trial trial) (merge-study-design-facets trial))))
+    (merge (curated-why-stopped trial-id)
+           (merge (classify-individual-trial trial) (merge-study-design-facets trial)))))
 
 (defn random-trial []
   (let [api-server "http://api.lillycoi.com/v1"]

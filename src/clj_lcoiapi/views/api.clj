@@ -7,7 +7,7 @@
         [monger.collection :only [insert]]
         [clj-lcoiapi.core :only
          [classify-trials get-trial parse-study-design-all-trials
-          stopped-trials-for-turk]]
+          prepare-trial-facets stopped-trials-for-turk trial-facets]]
         [hiccup.core :only [html]]
         [clojure.data.json :only [read-json]])
   (:import [org.bson.types ObjectId]
@@ -16,6 +16,12 @@
 
 (defpage "/test" []
   (response/json {:test "success"}))
+
+(defpage [:get "/trials/facets"] {:keys [hierarchy]}
+  (response/json {:name "Stopped Trials"
+                  :children (trial-facets
+                             (map keyword (clojure.string/split hierarchy #","))
+                             (prepare-trial-facets))}))
 
 (defpage [:get "/trials/stopped"] []
   (response/json (classify-trials)))

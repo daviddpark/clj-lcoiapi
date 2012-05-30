@@ -9,7 +9,7 @@ span.label {
 }
 
 #annotationClass, #annotationText, #submitAnnotation, #cancelSubmission {
-    float: left;
+    /*float: left;*/
 }
 
 #annotationClass {
@@ -66,7 +66,7 @@ div.label {
     color: #000000;
     width: 250px;
 }
-div#intervention h4, div#condition h4, div#phase h4 {
+th, div#intervention h4, div#condition h4, div#phase h4 {
     background: #D9D9D9;
     color: #000000;
 }
@@ -86,4 +86,26 @@ ul.outcomes li {
 
 input#relevantUrl {
     width: 700px;
+}
+
+.chart {
+  display: block;
+  margin: auto;
+  margin-top: 60px;
+  font-size: 11px;
+}
+
+rect {
+  stroke: #eee;
+  fill: #aaa;
+  fill-opacity: .8;
+}
+
+rect.parent {
+  cursor: pointer;
+  fill: steelblue;
+}
+
+text {
+  pointer-events: none;
 }

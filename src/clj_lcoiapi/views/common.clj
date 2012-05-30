@@ -10,6 +10,7 @@
     (include-css "/css/lcoiapi.css")
     (include-css "/css/dot-luv/jquery-ui-1.8.20.custom.css")
     (include-js "/js/lcoiapi.js")
+    (include-js "/js/d3.v2.min.js")
     (include-js
      "http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js")
     (include-js "/js/jquery-ui-1.8.20.custom.min.js")
@@ -17,3 +18,4 @@
    [:body
     [:div#wrapper
      content]]))
+

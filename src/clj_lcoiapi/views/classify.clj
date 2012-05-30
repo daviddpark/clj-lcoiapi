@@ -28,7 +28,7 @@
   [:ul.outcomes (map outcome-item items)])
 
 (defpartial trial-common [trial]
-  [:h3 (:id trial) " - " (:brief_title trial)]
+  [:h3.hiliteAnnotation (:id trial) " - " (:brief_title trial)]
   [:p [:span.label "Overall Status: "] (:overall_status trial)]
   [:p [:span.label "Why Stopped: " ]
    (if (nil? (:why_stopped trial))
@@ -36,21 +36,48 @@
      [:span#why_stopped (:why_stopped trial)]
      )])
 
+(defpartial trial-annotations [trial]
+  (for [curation (:curations trial)]
+    (let [annotations (:annotations curation)]
+      (if (not (empty? annotations))
+        [:table
+         [:tr [:td {:colspan 2}
+               [:h4 "ANNOTATED CLASSIFICATIONS"]]]
+         [:tr
+          [:th "Classification"] [:th "Selected Text"]]
+         (for [annotation annotations]
+           [:tr
+            [:td (first annotation)]
+            [:td (first (rest annotation))]])])
+      ))
+  (for [curation (:curations trial)]
+    (let [annotation-urls (:annotationUrls curation)]
+      (if (not (empty? annotation-urls))
+        [:table
+         [:tr [:td {:colspan 2}
+               [:h4 "EXTERNAL URL CLASSIFICATIONS"]]]
+         [:tr
+          [:th "Classification"] [:th "URL"]]
+         (for [annotation annotation-urls]
+           [:tr
+            [:td (first annotation)]
+            [:td [:a {:target "_blank"
+                      :href (first (rest annotation))}
+                  (first (rest annotation))]]])]))))
+
 (defpartial probabilities [trial]
-  [:h1 [:a#probabilities "What the machine thinks of this trial's stopped reason"]]
+  [:h1 [:a#probabilities "Classification of Why Stopped"]]
   [:div
-   [:p [:div.label "Why Stopped: " ]
-    [:span#why_stopped (:why_stopped trial)]]
-   [:p [:div.label "Best Category: "]
-    (:best-category (:why_stopped_classification trial))]
-   [:div#probChartDiv]
-   [:h3 "Probabilities for each category:"]
-   (let [probs (:probabilities (:why_stopped_classification trial))
-         sortedprobs (into (sorted-map-by (fn [k1 k2] (<= (get probs k2) (get probs k1)))) probs)]
-     (for [key (keys sortedprobs)]
-       [:p [:div.label key ": "]
-        [:span.probability (get probs key)]]))
+   (trial-annotations trial)
    
+   [:h3 "Statistically, the classification is probably '"
+    (:best-category (:why_stopped_classification trial)) "'"]
+   [:p [:span.label "Why Stopped: " ]
+    [:span#why_stopped (:why_stopped trial)]]
+   
+   [:h4 "Probability distribution"]
+   [:div#probChartDiv]
+      
    [:h4 "What does this tell us?"]
    [:p "The concept of 'Best Category' is essentially the classification that has "
     "the highest probabilty of being correct. If the probabilities are relatively "
@@ -63,11 +90,13 @@
    "function drawChart() {\n"
    "  var data = google.visualization.arrayToDataTable([\n"
    "    ['Category', 'Probability (%)']"
-   (let [probs (:probabilities (:why_stopped_classification trial))]
-     (apply str (for [cat (keys probs)]
+   (let [probs (:probabilities (:why_stopped_classification trial))
+         sortedprobs (into (sorted-map-by (fn [k1 k2] (<= (get probs k2) (get probs k1)))) probs)]
+     (apply str (for [cat (keys sortedprobs)]
                   (str ",['" cat "', " (get probs cat) "]"))))
    "    ]);\n"
-   "  var options = { title: 'Category Probabilities'};\n"
+   "  var options = { title: 'Category Probabilities', width: 800, backgroundColor: 'black',"
+   "                  legend: {textStyle: {color: '#D9D9D9'}}};\n"
    "  var chart = new google.visualization.PieChart(document.getElementById('probChartDiv'));\n"
    "  chart.draw(data, options);\n"
    "}"
@@ -76,22 +105,36 @@
 
 (defpartial classify-trial [trial]
   [:div#accordion
-   [:h1 [:a#howtohelp "How you can help"]]
+   [:h1 [:a#theproblem "USE CASE: Why studies end prematurely"]]
+   [:ul
+    [:li "There are many clinical trials that were stopped early."]
+    [:li "What insight can we gain by understanding the reasons why?"]
+    [:li "Sometimes, the 'Why Stopped' field is filled out"]
+    [:li "As a free-text field, there are typos and the 'WHY' may not be obvious"]
+    [:li "If we can classify a subset of this text into distinct categories,"
+     " we can treat this subset as a training set and use NLP techniques "
+     " to classify the rest of the data."]
+    [:li "Explicitly annotated trials can also prioritize the human selected "
+     "classification over the machine learned classification."]]
+
+
+   [:h1 [:a#howtohelp "How to Help"]]
    [:div
-    [:p "Below are some fields with text that might be used to "
-     "identify a category. If you use your mouse to select the "
-     "specific words that gave you the insight as to how you "
-     "would classify the reason why the study was terminated, "
-     "we will show you a popup and you can choose which category "
-     "you would associate with the words you selected. "
-     "You can select as many phrases and classify them individually "
-     "as needed."]
-    [:p "We will take your classifications and use them to create "
-     "a training set that can be applied to the 'Why Stopped' field, "
-     "so that we can apply probabilistic analysis to determine the "
-     "best possible category for studies that have not been "
-     "explicitly categorized."]
-    ]
+        
+    [:ul
+     [:li "We will show you a randomly selected stopped trial."]
+     [:li "If the sponsor has entered information into the 'Why Stopped' field:"
+      [:ul
+       [:li "Select the words in the field that help you choose a classification."]
+       [:li "A popup will allow you to associate a classification with the selected words."]
+       [:li "If the trial might be classified with multiple categories, select ONLY the words that apply to the classification, and repeat as relevant."]]
+      ]
+     [:li "If the trial has no 'Why Stopped' field, examine the trial details."
+      [:ul
+       [:li "Perhaps a Google search of some of the text in the 'Detailed Description' or 'Brief Summary' fields might prove insightful."]
+       [:li "Select some text, then select the 'Google Search' button"]
+       [:li "If any of the search results can provide some insight into why the trial was stopped, copy the URL and store it as a classified annotation."]]]]]
+   
    [:h1 [:a#trialDetailLink (str "Classify trial " (:id trial))]]
    [:div
     [:div {:id "annotationz"}
@@ -177,14 +220,116 @@
    ]
   [:div#classify_dialog])
 
+(defpage [:get "/trials/classify/context"] []
+  (common/layout
+   [:div#contextAccordion
+    [:h3 "INTRO: Establishing Context"]
+    [:div
+     [:p "Current state of http://www.clinicalcollections.org provides faceted browsing over normalized fields."]
+     [:p "Once the fields are normalized, you can do lots of visualization."]
+     [:p "It is nearly impossible to do visualization with free-text entry fields like Inclusion/Exclusion  - unless the information parsed and normalized."]]
+    [:h3 "USE CASE: Why studies end prematurely"]
+    [:div
+     [:h4 "Three types of 'stopped' study"]
+     [:ol
+      [:li "Terminated: stopped during execution"]
+      [:li "Withdrawn: did not start execution"]
+      [:li "Suspended: temporarily halted, optional continuation or termination"]]
+     [:h4 "NLM CTGov  collects 'Why Stopped' field"]
+     [:ul
+      [:li "Free-text field, not normalized into specific categories."]
+      [:li "Optional field, often blank"]]
+     [:h4 "Can we provide more structure by classifying this free text into specific categories?"]]
+    [:h4 "TASK: Categorizing free text"]
+    [:div
+     [:h4 "Introducing the categories:"]
+     [:p "The AHA published an article "
+      [:a {:href "http://circ.ahajournals.org/content/89/6/2892"} "The early termination of clinical "
+       "trials: causes, consequences, and control."]
+      "They establish a table of termination categories. We have complemented these categories with "
+      "categories that represent a slightly broader set."
+      [:ul
+       [:li "AEISSUE: Unexpected unacceptable side effects"]
+       [:li "COMPLETED: More accurately described as completed"]
+       [:li "DESCRIPTION: The reason for stopping may be in the description"]
+       [:li "DESIGNCHANGE: The trial was stopped due to changes in the study design"]
+       [:li "EXTERNAL: The trial was stopped due to external factors"]
+       [:li "FUNDING: Insufficient funding"]
+       [:li "HIGHBENEFIT: Unequivocal evidence of treatment benefit"]
+       [:li "LOWCOMPLIANCE: Lack of compliance in a large number of patients"]
+       [:li "LOWENROLLMENT: Failure to include enough patients at a sufficient rate"]
+       [:li "PERSONNEL: Personnel issues, like Principal Investigator change"]
+       [:li "SAEISSUE: Unequivocal evidence of treatment harm"]
+       [:li "STRATEGIC: Business reasons"]
+       [:li "UNKNOWN: Unable to determine a valid classification"]
+       [:li "UNLIKELYBENEFIT: No emerging trends and no reasonable chance of benefit"]]]
+     [:p "These categories are for demonstration purposes and require detailed review and refinement."]]
+    [:h4 "ML and NLP"]
+    [:div
+     [:p "Universities like MIT and Stanford are offering many online courses, such as ML and NLP."]
+     [:ul
+      [:li [:h4 "Machine Learning"]
+       "A branch of artificial intelligence is a discipline focused on algorithms "
+       "to allow computers to evolve behaviors based on empirical data."]
+      [:li "We take a subset of the 'Why Stopped' data and construct a training set"]
+      [:li [:h4 "Natural Language Processing"]
+       "A narrower field of machine learning that allows a computer to extract meaningful "
+       "information from natural language, or what we have so far called 'free text'."]
+      [:li [:a {:href "http://opennlp.apache.org"} "Apache's OpenNLP Project"]]
+      [:li [:a {:href "http://github.com/dakrone/clojure-opennlp"} "Lee Hinman's Clojure wrapper around OpenNLP"]]
+      [:li "Rudimentary 'Bag of Words' implementation"]]
+     ]
+    [:h4 "DEMO"]
+    [:div
+     [:h4 "~9k 'stopped' out of ~126k clinical studies"]
+     [:h5 "limited training set == limited confidence in classification"]
+     [:h5 "improves over time, and training set data considered crowd curated annotation"]
+     [:ol
+      [:li "Training pays off! "
+       [:a {:href "/trials/classify/NCT01067235"} "Recruitment continues to be a problem"]]
+      [:li "Not enough data in the training set. "
+       [:a {:href "/trials/classify/NCT00700609"} "Principal Investigator vs. P.I. vs. PI"]]
+      [:li "Trivial Pursuit: "
+       [:a {:href "/trials/classify/NCT00589524"} "When the training set has NO idea how to classify"]]
+      [:li "Do we have a winner? "
+       [:a {:href "/trials/classify/NCT01185548"} "The machine's top guesses may both be correct"]]
+      [:li "Another close race... "
+       [:a {:href "/trials/classify/NCT00385398"} "More multiple reasons for termination"]]]]
+    [:h4 "Summary"]
+    [:div
+     [:h5 "Applied machine and human workflow to annotate and curate data"]
+     [:h5 "Learning loop"]
+     [:ul
+      [:li "Human engagement is key"]
+      [:li "Machine can learn from human engagement"]]
+     [:h5 "Apply similar approach of ML/NLP with human curation to annotate and classify:"]
+     [:ul
+      [:li "Eligibility Critera (Inclusion/Exclusion)"]
+      [:li "Incorporate New Data:"
+       [:ul
+        [:li "Mechanism of action of interventions"]
+        [:li "Biomarkers"]
+        [:li "Genetic components in research"]]]
+      
+      ]
+     [:h5 "Leverage the crowd!"]
+     [:ul
+      [:li "Mechanical Turk for scale"]
+      [:li "Use wisdom of crowd for confidence (validation through multiple reviews)"]
+      [:li "Offset poor machine interpretation with human curation"
+       [:ul
+        [:li "Curation workflows to build training sets"]
+        [:li "Machine Learning pass for large volume of information"]
+        [:li "Additional targeted curation workflows for low volume, complex discernment, "
+         "disambiguation of probability distribution"]]]]]]
+     
+   [:script {:type "text/javascript"}
+   "$(document).ready(function(){$(\"#contextAccordion\").accordion({autoHeight:false,collapsible:true})});"
+   ])
+  )
+
 (defpage [:get "/trials/classify/random"] []
   (common/layout
-   [:h1 "Help us classify clinical trials"]
-   [:p "We are applying machine learning techniques to try to "
-    "categorize the reasons why a given study has been "
-    "terminated, suspended or withdrawn. With your help, "
-    "we are building up a training set by identifying the "
-    "keywords that can be used to infer a given classification."]
    (classify-trial (random-stopped-trial))))
 
 (defpage [:get "/trials/classify/thanks"] []
@@ -195,6 +340,7 @@
 (defpage [:get ["/trials/classify/:id" :id #"NCT\d+"]] {:keys [id]}
   (common/layout (classify-trial
                   (get-trial "http://api.lillycoi.com/v1" id))))
+
 
 (def trial-class-map (list (list " -- Please select a category --" "")
   (list "AEISSUE: Unexpected unacceptable side effects" :AEISSUE)

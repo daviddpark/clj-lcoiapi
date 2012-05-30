@@ -89,7 +89,7 @@ lcoiapi.Selector.mouseupWhyStopped = function() {
     $('#classify_dialog').html(classForm);
     $('#classify_dialog').dialog({
       autoOpen: true, modal: true,
-      height: 300, width: 600,
+      height: 600, width: 600,
       buttons: {
         "Classify this text": function() {
           var selectedClass = $("select#stoppedClass option:selected").val();
@@ -112,7 +112,7 @@ lcoiapi.Selector.mouseupWhyStopped = function() {
 }
 
 function classifyLoaded() {
-  $("div#accordion").accordion({autoHeight:false,active:1,collapsible:true});
+  $("div#accordion").accordion({autoHeight:false,active:2,collapsible:true});
   $("p.hiliteAnnotation").bind("mouseup", lcoiapi.Selector.mouseupGoogle);
   $("span#why_stopped").bind("mouseup", lcoiapi.Selector.mouseupWhyStopped);
   $("#submitAnnotation, #cancelSubmission").button();
@@ -129,3 +129,19 @@ function classifyLoaded() {
   })
 }
 
+function addFacet(e) {
+  var sv = $(e).val();
+
+  $("select#selectedFacets").append($("<option>").html(sv));
+  alert(sv);
+}
+
+function prepareFacetSelector() {
+    $("select#selectedFacets").append($("<option>wtf</option>"));
+    $("select#facetSelector").change(function(){addFacet(this)}).attr("multiple","multiple");
+    for (var key in lcoiapi.classificationList) {
+      $("select#facetSelector").append($("<option>").attr("value", key).html(key));
+    }
+}
+    
+       
