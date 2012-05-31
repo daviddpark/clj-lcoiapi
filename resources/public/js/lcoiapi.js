@@ -42,7 +42,8 @@ lcoiapi.Selector.mouseupGoogle = function() {
     for (var key in lcoiapi.classificationList) {
       stoppedClass.append($("<option>").attr("value", key).html(key+": "+lcoiapi.classificationList[key]));
     }
-    classForm.append($("<h3>").html('Search for: \"'+text+'\"'));
+    var searchText = $("#lead_sponsor").html()+" "+$("#overall_status").html()+" "+text;
+    classForm.append($("<h3>").html('Search for: \"'+searchText+'\"'));
     classForm.append(stoppedClass);
     classForm.append($("<input>").attr("type","hidden").attr("id","selectedText").attr("value",text));
     classForm.append($("<p>").html("If you find a relevant URL that provides some insight into why you would select the  particular classification, please copy the URL into this field."));
@@ -53,7 +54,7 @@ lcoiapi.Selector.mouseupGoogle = function() {
       height: 600, width: 800,
       buttons: {
         "Google Search": function() {
-          window.open("http://www.google.com/search?q="+$("#selectedText").val())
+          window.open("http://www.google.com/search?q="+searchText)
         },
         "Annotate with URL": function() {
           var selectedClass = $("select#stoppedClass option:selected").val();

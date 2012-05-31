@@ -29,8 +29,8 @@
 
 (defpartial trial-common [trial]
   [:h3.hiliteAnnotation (:id trial) " - " (:brief_title trial)]
-  [:p [:span.label "Overall Status: "] (:overall_status trial)]
-  [:p [:span.label "Why Stopped: " ]
+  [:p [:span.label "Overall Status: "] [:span#overall_status (:overall_status trial)]]
+  [:p#why_stopped [:span.label "Why Stopped: " ]
    (if (nil? (:why_stopped trial))
      "[NO VALUE]"
      [:span#why_stopped (:why_stopped trial)]
@@ -173,8 +173,8 @@
     [:p "First Received on " (:value (:firstreceived_date trial))
      " Last Updated on " (:value (:lastchanged_date trial))]
     [:p [:span.label "Lead Sponsor: "]
-     (:agency (:lead_sponsor (:sponsors trial))) " ("
-     (:agency_class (:lead_sponsor (:sponsors trial))) ")"]
+     [:span#lead_sponsor (:agency (:lead_sponsor (:sponsors trial)))]
+     " (" (:agency_class (:lead_sponsor (:sponsors trial))) ")"]
     (for [collaborator (:collaborator (:sponsors trial))]
       [:p [:span.label "Collaborator: "]
        (:agency collaborator) " ("
@@ -293,6 +293,8 @@
        [:a {:href "/trials/classify/NCT00589524"} "When the training set has NO idea how to classify"]]
       [:li "Do we have a winner? "
        [:a {:href "/trials/classify/NCT01185548"} "The machine's top guesses may both be correct"]]
+      [:li "No 'Why Stopped', but a "
+       [:a {:href "/trials/classify/NCT00145431"} "Google search proves insightful."]]
       [:li "Another close race... "
        [:a {:href "/trials/classify/NCT00385398"} "More multiple reasons for termination"]]]]
     [:h4 "Summary"]

@@ -109,3 +109,8 @@ rect.parent {
 text {
   pointer-events: none;
 }
+
+p#why_stopped {
+  background-color: red;
+  color: white;
+}
